@@ -1,0 +1,212 @@
+/* Arduino New Rotary Encoder Debounce
+Daniel Mitchell - 3rd Feb 2024
+Source began with Yvan / https://Brainy-Bits.com
+Modified for Arduino-Uno - 3 x rotary encoders - LCD-2004A display
+*/
+
+// Libraries 
+#include <LiquidCrystal_I2C.h>
+#include <SPI.h>
+LiquidCrystal_I2C lcd(0x27, 20, 4);
+
+// Variables to debounce Rotary Encoder
+long TimeOfLastDebounce1 = 0;
+long TimeOfLastDebounce2 = 0;
+long TimeOfLastDebounce3 = 0;
+int DelayofDebounce = 0.01;
+
+// Rotary Encoder Arduino Pin connections
+const int PinSW1=2;    // Encoder 1 Switch
+const int PinDT1=3;    // Encoder 1 DATA signal
+const int PinCLK1=4;   // Encoder 1 CLOCK signal
+const int PinSW2=5;    // Encoder 2 Switch
+const int PinDT2=6;    // Encoder 2 DATA signal
+const int PinCLK2=7;   // Encoder 2 CLOCK signal
+const int PinSW3=8;    // Encoder 3 Switch
+const int PinDT3=9;    // Encoder 3 DATA signal
+const int PinCLK3=10;  // Encoder 3 CLOCK signal
+
+// Display setttings
+const int dcrow1=1;    // Encoder 1 display row
+const int dccol1=10;   // Encoder 1 display column
+int displaycounter1=0; // Encoder 1 current counter value
+const int dcrow2=2;    // Encoder 2 display row
+const int dccol2=10;   // Encoder 2 display column
+int displaycounter2=0; // Encoder 2 current counter value
+const int dcrow3=3;    // Encoder 3 display row
+const int dccol3=10;   // Encoder 3 display column
+int displaycounter3=0; // Encoder 3 current counter value
+
+// Store previous Pins state
+int PreviousCLK1;   
+int PreviousDATA1;
+int PreviousCLK2;   
+int PreviousDATA2;
+int PreviousCLK3;   
+int PreviousDATA3;
+
+void setup() {
+  // Put current pins state in variables
+  PreviousCLK1=digitalRead(PinCLK1);
+  PreviousDATA1=digitalRead(PinDT1);
+  PreviousCLK2=digitalRead(PinCLK2);
+  PreviousDATA2=digitalRead(PinDT2);
+  PreviousCLK3=digitalRead(PinCLK3);
+  PreviousDATA3=digitalRead(PinDT3);
+
+  // Set the Switch pin to use Arduino PULLUP resistors
+  pinMode(PinSW1, INPUT_PULLUP);
+  pinMode(PinSW2, INPUT_PULLUP);
+  pinMode(PinSW3, INPUT_PULLUP);
+
+  // Clean and set initial Display
+  lcd.init(); lcd.clear(); lcd.backlight();
+  lcd.setCursor(0, 1); lcd.print("Start:");
+  lcd.setCursor(0, 2); lcd.print("Stop:");
+  lcd.setCursor(0, 3); lcd.print("Velocity:");
+  lcd.setCursor(dccol1, dcrow1); lcd.print(displaycounter1);
+  lcd.setCursor(dccol2, dcrow2); lcd.print(displaycounter2);
+  lcd.setCursor(dccol3, dcrow3); lcd.print(displaycounter3);
+}
+
+// Check if Rotary Encoder 1 was moved
+void check_rotary1() {
+  if ((PreviousCLK1 == 0) && (PreviousDATA1 == 1)) {
+    if ((digitalRead(PinCLK1) == 1) && (digitalRead(PinDT1) == 0)) {
+       displaycounter1++; lcd.setCursor(dccol1,dcrow1); lcd.print("     "); lcd.setCursor(dccol1,dcrow1); lcd.print(displaycounter1);
+    }
+    if ((digitalRead(PinCLK1) == 1) && (digitalRead(PinDT1) == 1)) {
+       displaycounter1--; lcd.setCursor(dccol1,dcrow1); lcd.print("     "); lcd.setCursor(dccol1,dcrow1); lcd.print(displaycounter1);
+    }
+  }
+  if ((PreviousCLK1 == 1) && (PreviousDATA1 == 0)) {
+    if ((digitalRead(PinCLK1) == 0) && (digitalRead(PinDT1) == 1)) {
+       displaycounter1++; lcd.setCursor(dccol1,dcrow1); lcd.print("     "); lcd.setCursor(dccol1,dcrow1); lcd.print(displaycounter1);
+    }
+    if ((digitalRead(PinCLK1) == 0) && (digitalRead(PinDT1) == 0)) {
+       displaycounter1--; lcd.setCursor(dccol1,dcrow1); lcd.print("     "); lcd.setCursor(dccol1,dcrow1); lcd.print(displaycounter1);
+    }
+  }
+  if ((PreviousCLK1 == 1) && (PreviousDATA1 == 1)) {
+    if ((digitalRead(PinCLK1) == 0) && (digitalRead(PinDT1) == 1)) {
+       displaycounter1++; lcd.setCursor(dccol1,dcrow1); lcd.print("     "); lcd.setCursor(dccol1,dcrow1); lcd.print(displaycounter1);
+    }
+    if ((digitalRead(PinCLK1) == 0) && (digitalRead(PinDT1) == 0)) {
+       displaycounter1--; lcd.setCursor(dccol1,dcrow1); lcd.print("     "); lcd.setCursor(dccol1,dcrow1); lcd.print(displaycounter1);
+    }
+  }  
+  if ((PreviousCLK1 == 0) && (PreviousDATA1 == 0)) {
+    if ((digitalRead(PinCLK1) == 1) && (digitalRead(PinDT1) == 0)) {
+       displaycounter1++; lcd.setCursor(dccol1,dcrow1); lcd.print("     "); lcd.setCursor(dccol1,dcrow1); lcd.print(displaycounter1);
+    }
+    if ((digitalRead(PinCLK1) == 1) && (digitalRead(PinDT1) == 1)) {
+       displaycounter1--; lcd.setCursor(dccol1,dcrow1); lcd.print("     "); lcd.setCursor(dccol1,dcrow1); lcd.print(displaycounter1);
+    }
+  }  
+ if (digitalRead(PinSW1) == LOW) {                                      // Check if Rotary Encoder switch was pressed
+    displaycounter1=0; lcd.setCursor(dccol1,dcrow1); lcd.print("     "); lcd.setCursor(dccol1,dcrow1); lcd.print(displaycounter1);
+  }          
+}
+
+// Check if Rotary Encoder 2 was moved
+void check_rotary2() {
+  if ((PreviousCLK2 == 0) && (PreviousDATA2 == 1)) {
+    if ((digitalRead(PinCLK2) == 1) && (digitalRead(PinDT2) == 0)) {
+       displaycounter2++; lcd.setCursor(dccol2,dcrow2); lcd.print("     "); lcd.setCursor(dccol2,dcrow2); lcd.print(displaycounter2);
+    }
+    if ((digitalRead(PinCLK2) == 1) && (digitalRead(PinDT2) == 1)) {
+       displaycounter2--; lcd.setCursor(dccol2,dcrow2); lcd.print("     "); lcd.setCursor(dccol2,dcrow2); lcd.print(displaycounter2);
+    }
+  }
+  if ((PreviousCLK2 == 1) && (PreviousDATA2 == 0)) {
+    if ((digitalRead(PinCLK2) == 0) && (digitalRead(PinDT2) == 1)) {
+       displaycounter2++; lcd.setCursor(dccol2,dcrow2); lcd.print("     "); lcd.setCursor(dccol2,dcrow2); lcd.print(displaycounter2);
+    }
+    if ((digitalRead(PinCLK2) == 0) && (digitalRead(PinDT2) == 0)) {
+       displaycounter2--; lcd.setCursor(dccol2,dcrow2); lcd.print("     "); lcd.setCursor(dccol2,dcrow2); lcd.print(displaycounter2);
+    }
+  }
+  if ((PreviousCLK2 == 1) && (PreviousDATA2 == 1)) {
+    if ((digitalRead(PinCLK2) == 0) && (digitalRead(PinDT2) == 1)) {
+       displaycounter2++; lcd.setCursor(dccol2,dcrow2); lcd.print("     "); lcd.setCursor(dccol2,dcrow2); lcd.print(displaycounter2);
+    }
+    if ((digitalRead(PinCLK2) == 0) && (digitalRead(PinDT2) == 0)) {
+       displaycounter2--; lcd.setCursor(dccol2,dcrow2); lcd.print("     "); lcd.setCursor(dccol2,dcrow2); lcd.print(displaycounter2);
+    }
+  }  
+  if ((PreviousCLK2 == 0) && (PreviousDATA2 == 0)) {
+    if ((digitalRead(PinCLK2) == 1) && (digitalRead(PinDT2) == 0)) {
+       displaycounter2++; lcd.setCursor(dccol2,dcrow2); lcd.print("     "); lcd.setCursor(dccol2,dcrow2); lcd.print(displaycounter2);
+    }
+    if ((digitalRead(PinCLK2) == 1) && (digitalRead(PinDT2) == 1)) {
+       displaycounter2--; lcd.setCursor(dccol2,dcrow2); lcd.print("     "); lcd.setCursor(dccol2,dcrow2); lcd.print(displaycounter2);
+    }
+  }  
+ if (digitalRead(PinSW2) == LOW) {                                      // Check if Rotary Encoder switch was pressed
+    displaycounter2=0; lcd.setCursor(dccol2,dcrow2); lcd.print("     "); lcd.setCursor(dccol2,dcrow2); lcd.print(displaycounter2);
+  }          
+}
+
+// Check if Rotary Encoder 3 was moved
+void check_rotary3() {
+  if ((PreviousCLK3 == 0) && (PreviousDATA3 == 1)) {
+    if ((digitalRead(PinCLK3) == 1) && (digitalRead(PinDT3) == 0)) {
+       displaycounter3++; lcd.setCursor(dccol3,dcrow3); lcd.print("     "); lcd.setCursor(dccol3,dcrow3); lcd.print(displaycounter3);
+    }
+    if ((digitalRead(PinCLK3) == 1) && (digitalRead(PinDT3) == 1)) {
+       displaycounter3--; lcd.setCursor(dccol3,dcrow3); lcd.print("     "); lcd.setCursor(dccol3,dcrow3); lcd.print(displaycounter3);
+    }
+  }
+  if ((PreviousCLK3 == 1) && (PreviousDATA3 == 0)) {
+    if ((digitalRead(PinCLK3) == 0) && (digitalRead(PinDT3) == 1)) {
+       displaycounter3++; lcd.setCursor(dccol3,dcrow3); lcd.print("     "); lcd.setCursor(dccol3,dcrow3); lcd.print(displaycounter3);
+    }
+    if ((digitalRead(PinCLK3) == 0) && (digitalRead(PinDT3) == 0)) {
+       displaycounter3--; lcd.setCursor(dccol3,dcrow3); lcd.print("     "); lcd.setCursor(dccol3,dcrow3); lcd.print(displaycounter3);
+    }
+  }
+  if ((PreviousCLK3 == 1) && (PreviousDATA3 == 1)) {
+    if ((digitalRead(PinCLK3) == 0) && (digitalRead(PinDT3) == 1)) {
+       displaycounter3++; lcd.setCursor(dccol3,dcrow3); lcd.print("     "); lcd.setCursor(dccol3,dcrow3); lcd.print(displaycounter3);
+    }
+    if ((digitalRead(PinCLK3) == 0) && (digitalRead(PinDT3) == 0)) {
+       displaycounter3--; lcd.setCursor(dccol3,dcrow3); lcd.print("     "); lcd.setCursor(dccol3,dcrow3); lcd.print(displaycounter3);
+    }
+  }  
+  if ((PreviousCLK3 == 0) && (PreviousDATA3 == 0)) {
+    if ((digitalRead(PinCLK3) == 1) && (digitalRead(PinDT3) == 0)) {
+       displaycounter3++; lcd.setCursor(dccol3,dcrow3); lcd.print("     "); lcd.setCursor(dccol3,dcrow3); lcd.print(displaycounter3);
+    }
+    if ((digitalRead(PinCLK3) == 1) && (digitalRead(PinDT3) == 1)) {
+       displaycounter3--; lcd.setCursor(dccol3,dcrow3); lcd.print("     "); lcd.setCursor(dccol3,dcrow3); lcd.print(displaycounter3);
+    }
+  }  
+ if (digitalRead(PinSW3) == LOW) {                                      // Check if Rotary Encoder switch was pressed
+    displaycounter3=0; lcd.setCursor(dccol3,dcrow3); lcd.print("     "); lcd.setCursor(dccol3,dcrow3); lcd.print(displaycounter3);
+  }          
+}
+
+void loop() {
+  // If enough time has passed check the rotary encoder
+  if ((millis() - TimeOfLastDebounce1) > DelayofDebounce) {
+    check_rotary1();  // Rotary Encoder check routine below
+    PreviousCLK1=digitalRead(PinCLK1);
+    PreviousDATA1=digitalRead(PinDT1);
+    TimeOfLastDebounce1=millis();  // Set variable to current millis() timer
+  }
+
+  if ((millis() - TimeOfLastDebounce2) > DelayofDebounce) {
+    check_rotary2();  // Rotary Encoder check routine below
+    PreviousCLK2=digitalRead(PinCLK2);
+    PreviousDATA2=digitalRead(PinDT2);
+    TimeOfLastDebounce2=millis();  // Set variable to current millis() timer
+  }
+
+  if ((millis() - TimeOfLastDebounce3) > DelayofDebounce) {
+    check_rotary3();  // Rotary Encoder check routine below
+    PreviousCLK3=digitalRead(PinCLK3);
+    PreviousDATA3=digitalRead(PinDT3);
+    TimeOfLastDebounce3=millis();  // Set variable to current millis() timer
+  }
+
+}
